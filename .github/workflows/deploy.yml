@@ -1,0 +1,33 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches:
+      - main  # Change to your target branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Install SSH Key
+      env:
+        EC2_KEY: ${{ secrets.EC2_KEY }}
+      run: |
+        echo "$EC2_KEY" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+
+    - name: SSH into EC2 and Deploy
+      env:
+        EC2_HOST: ${{ secrets.EC2_HOST }}  # Add your instance's IP as a GitHub secret
+        EC2_USER: ${{ secrets.EC2_USER }}  # Add the instance's SSH user as a GitHub secret
+      run: |
+        ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa $EC2_USER@$EC2_HOST << EOF
+          # Commands to set up or deploy your application
+          cd /var/www/html   # Change to your application directory on the server
+          sudo git pull origin main  # Example command to pull latest code
+          sudo systemctl restart apache2  # Restart Apache server if using it
+        EOF
